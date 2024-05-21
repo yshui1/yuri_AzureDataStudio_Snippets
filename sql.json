@@ -1,0 +1,496 @@
+{
+	// Place your snippets for sql here. Each snippet is defined under a snippet name and has a prefix, body and 
+	// description. The prefix is what is used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. Placeholders with the 
+	// same ids are connected.
+	// Example:
+	// "Count table rows": {
+	// 		"prefix": "sqlCountTbl",
+	// 		"body": [
+	// 			"SELECT COUNT(1) FROM ${1:TableName}"
+	// 		],
+	// 		"description": ""
+	// }
+	"Select top 100": {
+		"prefix": "sqltblSelect",
+		"body": ["SELECT TOP 100 * FROM ${1:TableName}",
+				"--WHERE "],
+		"description": ""
+	},
+	"Count table rows": {
+		"prefix": "sqltblCount",
+		"body": [
+			"SELECT COUNT(1) FROM ${1:TableName}"
+		],
+		"description": ""
+	},
+	"CTE Ad Hoc": {
+		"prefix": "sqlCTEAdhoc",
+		"body": [
+			";WITH CTE AS (",
+			"   SELECT * FROM (",
+			"   VALUES",
+			"      (1, 2, 3)",
+			"   ) AS a (Col1, Col2, Col3)",
+			")",
+			"SELECT * FROM CTE"
+	],
+	"description": ""
+	},
+	"Create Xtern": {
+		"prefix": "sqltblCreateXtern",
+		"body": [
+			"CREATE EXTERNAL TABLE [Xtern].[TableName]",
+			"(",
+			"   [Id] [char](18) NOT NULL,",
+			"   [IsDeleted] [bit] NULL",
+			")",
+			"WITH (DATA_SOURCE = [RentPath],SCHEMA_NAME = N'dbo',OBJECT_NAME = N'tableName')",
+			"GO"
+		],
+		"description": ""
+	},
+	"Create Xtern ADLS": {
+		"prefix": "sqltblCreateXternADLS",
+		"body": [
+			"CREATE EXTERNAL TABLE [Xtern].[TableName]",
+			"(",
+			"   [Id] [char](18) NOT NULL,",
+			"   [IsDeleted] [bit] NULL",
+			")",
+			"WITH (DATA_SOURCE = [ADLSGen2],LOCATION = N'/PROD/Output/',FILE_FORMAT = [ParquetFormat],REJECT_TYPE = VALUE,REJECT_VALUE = 50)",
+			"GO"
+		],
+		"description": ""
+	},
+	"Table disk usage": {
+		"prefix": "sqltblDiskUsage",
+		"body": [
+			"SELECT",
+			"   t.NAME AS TableName,",
+			"   s.Name AS SchemaName,",
+			"   p.rows,",
+			"   SUM(a.total_pages) * 8 AS TotalSpaceKB,",
+			"   CAST(ROUND(((SUM(a.total_pages) * 8) / 1024.00), 2) AS NUMERIC(36, 2)) AS TotalSpaceMB,",
+			"   SUM(a.used_pages) * 8 AS UsedSpaceKB,", 
+			"   CAST(ROUND(((SUM(a.used_pages) * 8) / 1024.00), 2) AS NUMERIC(36, 2)) AS UsedSpaceMB,", 
+			"   (SUM(a.total_pages) - SUM(a.used_pages)) * 8 AS UnusedSpaceKB,",
+			"   CAST(ROUND(((SUM(a.total_pages) - SUM(a.used_pages)) * 8) / 1024.00, 2) AS NUMERIC(36, 2)) AS UnusedSpaceMB",
+			"FROM", 
+			"   sys.tables t",
+			"INNER JOIN",      
+			"   sys.indexes i ON t.OBJECT_ID = i.object_id",
+			"INNER JOIN", 
+			"   sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p.index_id",
+			"INNER JOIN", 
+			"   sys.allocation_units a ON p.partition_id = a.container_id",
+			"LEFT OUTER JOIN", 
+			"   sys.schemas s ON t.schema_id = s.schema_id",
+			"WHERE", 
+			"   t.NAME NOT LIKE 'dt%'", 
+			"   AND t.is_ms_shipped = 0",
+			"   AND i.OBJECT_ID > 255", 
+			"   AND s.name = 'SchemaName'",
+			"   AND t.name IN (",
+			"   'table1'",
+			"   ,'table2'",
+			"   )",
+			"GROUP BY", 
+			"   t.Name, s.Name, p.Rows",
+			"ORDER BY", 
+			"   TotalSpaceMB DESC, t.Name"
+		],
+		"description": ""
+	},
+	"Table drop": {
+		"prefix": "sqltblDrop",
+		"body": [
+			"DROP TABLE IF EXISTS ${1:TableName}"
+		],
+		"description": ""
+	},
+	"Table drop legacy": {
+		"prefix": "sqltblDropLegacy",
+		"body": [
+			"BEGIN TRY",
+			"   DROP TABLE ${1:TableName}",
+			"END TRY",
+			"BEGIN CATCH",
+			"END CATCH"
+		],
+		"description": ""
+	},
+	"External table drop": {
+		"prefix": "sqlCountTbl",
+		"body": [
+			"IF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('${1:TableName}') )",
+			"   DROP EXTERNAL TABLE ${1:TableName}",
+			"GO"
+		],
+		"description": ""
+	},
+	"Table meta data": {
+		"prefix": "sqltblMetaData",
+		"body": [
+			"select ",
+			"   SchemaName = tbl.table_schema,",
+			"   TableName = tbl.table_name,",
+			"   TableFullName = tbl.table_schema + '.' + tbl.table_name, ",
+			"   ColumnName = col.column_name, ",
+			"   DataType = col.data_type,",
+			"   DataTypeLength = col.CHARACTER_MAXIMUM_LENGTH,",
+			"   NULLABLE = IIF(col.IS_NULLABLE = 'YES', 'NULL', 'NOT NULL')",
+			"FROM information_schema.tables tbl",
+			"INNER JOIN information_schema.columns col ",
+			"   ON col.table_name = tbl.table_name",
+			"   AND col.table_schema = tbl.table_schema",
+			"WHERE tbl.table_type = 'base table'",
+			"AND tbl.table_schema = 'dbo'",
+			"AND tbl.table_name = 'tableName'",
+			"ORDER BY col.ORDINAL_POSITION"
+		],
+		"description": ""
+	},
+	"Table search column": {
+		"prefix": "sqltblSearchCol",
+		"body": [
+			"SELECT",
+			"   c.name AS ColumnName",
+			"   ,s.name   AS SchemaName",
+			"   ,t.name AS TableName",
+			"   ,CONCAT(s.name, '.', t.name) AS FullTableName",
+			"FROM sys.columns c",
+			"JOIN sys.tables  t   ON c.object_id = t.object_id",
+			"JOIN sys.schemas s   ON t.schema_id = s.schema_id",
+			"WHERE c.name LIKE '%ColName%'",
+			"--AND s.name = 'dbo'",
+			"ORDER BY TableName",
+			"   ,ColumnName"
+		],
+		"description": ""
+	},
+	"Table Script": {
+		"prefix": "sqltblScript",
+		"body": [
+			"DECLARE @table_name SYSNAME",
+			"SELECT @table_name = '${1:TableName}' --no bracket!",
+			"",
+			"DECLARE ",
+			"      @object_name SYSNAME",
+			"    , @object_id INT",
+			"",
+			"SELECT ",
+			"      @object_name = '[' + s.name + '].[' + o.name + ']'",
+			"    , @object_id = o.[object_id]",
+			"FROM sys.objects o WITH (NOWAIT)",
+			"JOIN sys.schemas s WITH (NOWAIT) ON o.[schema_id] = s.[schema_id]",
+			"WHERE s.name + '.' + o.name = @table_name",
+			"    AND o.[type] = 'U'",
+			"    AND o.is_ms_shipped = 0",
+			"",
+			"DECLARE @SQL NVARCHAR(MAX) = ''",
+			"",
+			";WITH index_column AS ",
+			"(",
+			"    SELECT ",
+			"          ic.[object_id]",
+			"        , ic.index_id",
+			"        , ic.is_descending_key",
+			"        , ic.is_included_column",
+			"        , c.name",
+			"    FROM sys.index_columns ic WITH (NOWAIT)",
+			"    JOIN sys.columns c WITH (NOWAIT) ON ic.[object_id] = c.[object_id] AND ic.column_id = c.column_id",
+			"    WHERE ic.[object_id] = @object_id",
+			"),",
+			"fk_columns AS ",
+			"(",
+			"     SELECT ",
+			"          k.constraint_object_id",
+			"        , cname = c.name",
+			"        , rcname = rc.name",
+			"    FROM sys.foreign_key_columns k WITH (NOWAIT)",
+			"    JOIN sys.columns rc WITH (NOWAIT) ON rc.[object_id] = k.referenced_object_id AND rc.column_id = k.referenced_column_id ",
+			"    JOIN sys.columns c WITH (NOWAIT) ON c.[object_id] = k.parent_object_id AND c.column_id = k.parent_column_id",
+			"    WHERE k.parent_object_id = @object_id",
+			")",
+			"SELECT @SQL = 'CREATE TABLE ' + @object_name + CHAR(13) + '(' + CHAR(13) + STUFF((",
+			"    SELECT CHAR(9) + ', [' + c.name + '] ' + ",
+			"        CASE WHEN c.is_computed = 1",
+			"            THEN 'AS ' + cc.[definition] ",
+			"            ELSE UPPER(tp.name) + ",
+			"                CASE WHEN tp.name IN ('varchar', 'char', 'varbinary', 'binary', 'text')",
+			"                       THEN '(' + CASE WHEN c.max_length = -1 THEN 'MAX' ELSE CAST(c.max_length AS VARCHAR(5)) END + ')'",
+			"                     WHEN tp.name IN ('nvarchar', 'nchar', 'ntext')",
+			"                       THEN '(' + CASE WHEN c.max_length = -1 THEN 'MAX' ELSE CAST(c.max_length / 2 AS VARCHAR(5)) END + ')'",
+			"                     WHEN tp.name IN ('datetime2', 'time2', 'datetimeoffset') ",
+			"                       THEN '(' + CAST(c.scale AS VARCHAR(5)) + ')'",
+			"                     WHEN tp.name = 'decimal' ",
+			"                       THEN '(' + CAST(c.[precision] AS VARCHAR(5)) + ',' + CAST(c.scale AS VARCHAR(5)) + ')'",
+			"                    ELSE ''",
+			"                END +",
+			"                CASE WHEN c.collation_name IS NOT NULL THEN ' COLLATE ' + c.collation_name ELSE '' END +",
+			"                CASE WHEN c.is_nullable = 1 THEN ' NULL' ELSE ' NOT NULL' END +",
+			"                CASE WHEN dc.[definition] IS NOT NULL THEN ' DEFAULT' + dc.[definition] ELSE '' END + ",
+			"                CASE WHEN ic.is_identity = 1 THEN ' IDENTITY(' + CAST(ISNULL(ic.seed_value, '0') AS CHAR(1)) + ',' + CAST(ISNULL(ic.increment_value, '1') AS CHAR(1)) + ')' ELSE '' END ",
+			"        END + CHAR(13)",
+			"    FROM sys.columns c WITH (NOWAIT)",
+			"    JOIN sys.types tp WITH (NOWAIT) ON c.user_type_id = tp.user_type_id",
+			"    LEFT JOIN sys.computed_columns cc WITH (NOWAIT) ON c.[object_id] = cc.[object_id] AND c.column_id = cc.column_id",
+			"    LEFT JOIN sys.default_constraints dc WITH (NOWAIT) ON c.default_object_id != 0 AND c.[object_id] = dc.parent_object_id AND c.column_id = dc.parent_column_id",
+			"    LEFT JOIN sys.identity_columns ic WITH (NOWAIT) ON c.is_identity = 1 AND c.[object_id] = ic.[object_id] AND c.column_id = ic.column_id",
+			"    WHERE c.[object_id] = @object_id",
+			"    ORDER BY c.column_id",
+			"    FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, CHAR(9) + ' ')",
+			"    + ISNULL((SELECT CHAR(9) + ', CONSTRAINT [' + k.name + '] PRIMARY KEY (' + ",
+			"                    (SELECT STUFF((",
+			"                         SELECT ', [' + c.name + '] ' + CASE WHEN ic.is_descending_key = 1 THEN 'DESC' ELSE 'ASC' END",
+			"                         FROM sys.index_columns ic WITH (NOWAIT)",
+			"                         JOIN sys.columns c WITH (NOWAIT) ON c.[object_id] = ic.[object_id] AND c.column_id = ic.column_id",
+			"                         WHERE ic.is_included_column = 0",
+			"                             AND ic.[object_id] = k.parent_object_id ",
+			"                             AND ic.index_id = k.unique_index_id     ",
+			"                         FOR XML PATH(N''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''))",
+			"            + ')' + CHAR(13)",
+			"            FROM sys.key_constraints k WITH (NOWAIT)",
+			"            WHERE k.parent_object_id = @object_id ",
+			"                AND k.[type] = 'PK'), '') + ')'  + CHAR(13)",
+			"    + ISNULL((SELECT (",
+			"        SELECT CHAR(13) +",
+			"             'ALTER TABLE ' + @object_name + ' WITH' ",
+			"            + CASE WHEN fk.is_not_trusted = 1 ",
+			"                THEN ' NOCHECK' ",
+			"                ELSE ' CHECK' ",
+			"              END + ",
+			"              ' ADD CONSTRAINT [' + fk.name  + '] FOREIGN KEY(' ",
+			"              + STUFF((",
+			"                SELECT ', [' + k.cname + ']'",
+			"                FROM fk_columns k",
+			"                WHERE k.constraint_object_id = fk.[object_id]",
+			"                FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '')",
+			"               + ')' +",
+			"              ' REFERENCES [' + SCHEMA_NAME(ro.[schema_id]) + '].[' + ro.name + '] ('",
+			"              + STUFF((",
+			"                SELECT ', [' + k.rcname + ']'",
+			"                FROM fk_columns k",
+			"                WHERE k.constraint_object_id = fk.[object_id]",
+			"                FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '')",
+			"               + ')'",
+			"            + CASE ",
+			"                WHEN fk.delete_referential_action = 1 THEN ' ON DELETE CASCADE' ",
+			"                WHEN fk.delete_referential_action = 2 THEN ' ON DELETE SET NULL'",
+			"                WHEN fk.delete_referential_action = 3 THEN ' ON DELETE SET DEFAULT' ",
+			"                ELSE '' ",
+			"              END",
+			"            + CASE ",
+			"                WHEN fk.update_referential_action = 1 THEN ' ON UPDATE CASCADE'",
+			"                WHEN fk.update_referential_action = 2 THEN ' ON UPDATE SET NULL'",
+			"                WHEN fk.update_referential_action = 3 THEN ' ON UPDATE SET DEFAULT'  ",
+			"                ELSE '' ",
+			"              END ",
+			"            + CHAR(13) + 'ALTER TABLE ' + @object_name + ' CHECK CONSTRAINT [' + fk.name  + ']' + CHAR(13)",
+			"        FROM sys.foreign_keys fk WITH (NOWAIT)",
+			"        JOIN sys.objects ro WITH (NOWAIT) ON ro.[object_id] = fk.referenced_object_id",
+			"        WHERE fk.parent_object_id = @object_id",
+			"        FOR XML PATH(N''), TYPE).value('.', 'NVARCHAR(MAX)')), '')",
+			"    + ISNULL(((SELECT",
+			"         CHAR(13) + 'CREATE' + CASE WHEN i.is_unique = 1 THEN ' UNIQUE' ELSE '' END ",
+			"                + ' NONCLUSTERED INDEX [' + i.name + '] ON ' + @object_name + ' (' +",
+			"                STUFF((",
+			"                SELECT ', [' + c.name + ']' + CASE WHEN c.is_descending_key = 1 THEN ' DESC' ELSE ' ASC' END",
+			"                FROM index_column c",
+			"                WHERE c.is_included_column = 0",
+			"                    AND c.index_id = i.index_id",
+			"                FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') + ')'  ",
+			"                + ISNULL(CHAR(13) + 'INCLUDE (' + ",
+			"                    STUFF((",
+			"                    SELECT ', [' + c.name + ']'",
+			"                    FROM index_column c",
+			"                    WHERE c.is_included_column = 1",
+			"                        AND c.index_id = i.index_id",
+			"                    FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') + ')', '')  + CHAR(13)",
+			"        FROM sys.indexes i WITH (NOWAIT)",
+			"        WHERE i.[object_id] = @object_id",
+			"            AND i.is_primary_key = 0",
+			"            AND i.[type] = 2",
+			"        FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)')",
+			"    ), '')",
+			"",
+			"PRINT @SQL",
+			"--EXEC sys.sp_executesql @SQL"
+		],
+		"description": ""
+	},
+	"usp search": {
+		"prefix": "sqluspSearch",
+		"body": [
+			"SELECT s.Name + '.' + p.Name AS ProcedureName",
+			"FROM sys.procedures p INNER JOIN sys.schemas s ON p.schema_id = s.schema_id",
+			"WHERE OBJECT_DEFINITION(OBJECT_ID) LIKE '%TableNameOrWhatever%'"
+		],
+		"description": ""
+	},
+	"usp search 2": {
+		"prefix": "sqluspSearch2",
+		"body": [
+			"DECLARE @SearchFor nvarchar(max)='%[RentPath_staging].[ClickEventsPivot]%' -- search for this string",
+			"DECLARE @SearchSP bit = 1 -- 1=search in SPs as well",
+			"DECLARE @DisplaySPSource bit = 1 -- 1=display SP source code",
+			"-- tables",
+			"if (@SearchSP=1) begin",
+			"  (",
+			"  select '['+c.table_Schema+'].['+c.table_Name+'].['+c.column_name+']' [schema_object],",
+			"            t.table_type",
+			"  from information_schema.columns c",
+			"  left join information_schema.Tables t on c.table_name=t.table_name",
+			"  where column_name like @SearchFor",
+			"  union",
+			"  select '['+routine_Schema+'].['+routine_Name+']' [schema_object],",
+			"         'PROCEDURE' as table_type from information_schema.routines",
+			"  where routine_definition like @SearchFor",
+			"        and routine_type='procedure'",
+			"  )",
+			"  order by table_type, schema_object",
+			"end else begin",
+			"  select '['+c.table_Schema+'].['+c.table_Name+'].['+c.column_name+']' [schema_object],",
+			"         t.table_type",
+			"  from information_schema.columns c",
+			"  left join information_schema.Tables t on c.table_name=t.table_name",
+			"  where column_name like @SearchFor",
+			"  order by c.table_Name, c.column_name",
+			"end",
+			"-- stored procedure (source listing)",
+			"if (@SearchSP=1) begin",
+			"    if (@DisplaySPSource=1) begin",
+			"      select '['+routine_Schema+'].['+routine_Name+']' [schema.sp], routine_definition",
+			"      from information_schema.routines",
+			"      where routine_definition like @SearchFor",
+			"      and routine_type='procedure'",
+			"      order by routine_name",
+			"    end",
+			"end"
+		],
+		"description": ""
+	},
+	"View Search": {
+		"prefix": "sqlvwSearch",
+		"body": [
+			"SELECT",
+			"   c.name AS ColumnName",
+			"   ,s.name   AS SchemaName",
+			"   ,t.name AS ViewName",
+			"   ,CONCAT(s.name, '.', t.name) AS FullViewName",
+			"FROM sys.columns c",
+			"JOIN sys.views  t   ON c.object_id = t.object_id",
+			"JOIN sys.schemas s   ON t.schema_id = s.schema_id",
+			"WHERE c.name LIKE '%ColName%'",
+			"--AND s.name = 'dbo'",
+			"ORDER BY ViewName, ColumnName"
+		],
+		"description": ""
+	},
+	"CommonMart Logs": {
+		"prefix": "sqltblLog",
+		"body": [
+			"SELECT TOP (100)", 
+			"	[process_logs_id]", 
+			"	,[table_name]", 
+			"	,[proc_name]", 
+			"	,[Status]", 
+			"	,[process_err_no]", 
+			"	,[total_row_count]", 
+			"	,[insert_row_count]", 
+			"	,[update_row_count]", 
+			"	,[delete_row_count]", 
+			"	,[etl_source_system_id]", 
+			"	,[etl_process_source]", 
+			"	,[etl_process_params]", 
+			"	,[etl_process_userid]", 
+			"	,[execution_start_time]", 
+			"	,[execution_end_time]", 
+			"	,[process_log]", 
+			"FROM [dbo].[Process_Logs]", 
+			"WHERE table_name = 'Dimension.InventoryListing'",
+			"--WHERE proc_name = 'Dimension.uspInventoryListing'",
+			"ORDER BY 1 DESC"
+		],
+		"description": ""
+	},
+	"Table Profiling": {
+		"prefix": "sqltblProfiling",
+		"body": [
+			"DECLARE @schema varchar(MAX) = 'Stage', @table varchar(MAX) = 'CallRail'"
+			,""
+			,"DECLARE @tableName varchar(MAX)"
+			,"SET @tableName = CONCAT(@schema, '.', @table)"
+			,"PRINT(@tableName)"
+			,""
+			,"BEGIN TRY"
+			,"   DROP TABLE #tbl"
+			,"END TRY"
+			,"BEGIN CATCH"
+			,"END CATCH"
+			,""
+			,"select "
+			,"   SchemaName = tbl.table_schema,"
+			,"   TableName = tbl.table_name,"
+			,"   TableFullName = tbl.table_schema + '.' + tbl.table_name, "
+			,"   col.ORDINAL_POSITION AS position,"
+			,"   ROW_NUMBER() OVER (ORDER BY col.ORDINAL_POSITION) AS id,"
+			,"   ColumnName = col.column_name, "
+			,"   DataType = col.data_type,"
+			,"   DataTypeLength = col.CHARACTER_MAXIMUM_LENGTH,"
+			,"   NULLABLE = IIF(col.IS_NULLABLE = 'YES', 'NULL', 'NOT NULL')"
+			,"INTO #tbl"
+			,"FROM information_schema.tables tbl"
+			,"INNER JOIN information_schema.columns col "
+			,"   ON col.table_name = tbl.table_name"
+			,"   AND col.table_schema = tbl.table_schema"
+			,"WHERE tbl.table_type = 'base table'"
+			,"AND tbl.table_schema = @schema"
+			,"AND tbl.table_name = @table"
+			,"-- AND col.column_name IN ('', '', '', '', '', '', '', '', '', '', '', '', '', '', '')"
+			,"ORDER BY col.ORDINAL_POSITION"
+			,""
+			,"DECLARE @i int = 1, @max int, @sql varchar(MAX) = '', @col varchar(MAX)"
+			,"SET @max = (SELECT MAX(id) FROM #tbl)"
+			,"WHILE(@i <= @max)"
+			,"BEGIN"
+			,"	PRINT(@i)"
+			,""
+			,"	SELECT @col = ColumnName FROM #tbl WHERE id = @i"
+			,"	PRINT(@col)"
+			,""
+			,"	IF @i <> @max"
+			,"		SET @sql += 'SELECT DISTINCT ''' + @col + ''' AS ColumnName, CAST(' + @col + ' AS varchar(MAX)) AS AvailableValues FROM ' + @tableName + '"
+			,"UNION ALL"
+			,"'"
+			,"	ELSE"
+			,"		SET @sql += 'SELECT DISTINCT ''' + @col + ''' AS ColumnName, CAST(' + @col + ' AS varchar(MAX)) AS AvailableValues FROM ' + @tableName"
+			,""
+			,"	SET @i += 1"
+			,"END"
+			,""
+			,"PRINT(@sql)"
+			,""
+			,"BEGIN TRY"
+			,"   DROP TABLE #tblScan"
+			,"END TRY"
+			,"BEGIN CATCH"
+			,"END CATCH"
+			,""
+			,"CREATE TABLE #tblScan ("
+			,"	ColumnName varchar(MAX) NULL,"
+			,"	AvailableValues varchar(MAX) NULL"
+			,")"
+			,""
+			,"EXECUTE('INSERT INTO #tblScan ' + @sql)"
+			,""
+			,"SELECT ColumnName, STRING_AGG(ISNULL(AvailableValues, 'NULL'), ';') AS AvailableValues"
+			,"FROM #tblScan"
+			,"GROUP BY ColumnName"
+			,""
+			,"SELECT * FROM #tblScan"
+		],
+		"description": ""
+	}
+}
